@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SillyTavern 专属小仓库 // ARCHIVE v3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #ECEEF0;
+      color: #2D3139;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .notion-border { border: 1px solid #D5D8DC; }
+    .notion-border-b { border-bottom: 1px solid #E2E5E9; }
+    .notion-tag { background: #EEF0F2; color: #586069; border: 1px solid #D5D8DC; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .polaroid-card {
+      border: 3px solid #FFFFFF;
+      border-bottom: 10px solid #FFFFFF;
+      box-shadow: 1px 2px 7px rgba(0,0,0,0.09);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 sm:p-4">
+  <div id="app" class="w-full max-w-[440px] min-h-screen sm:min-h-[880px] bg-[#F7F8FA] flex flex-col notion-border shadow-xl sm:rounded-2xl overflow-hidden relative">
+
+    <!-- 顶部 macOS 窗口栏 -->
+    <header class="bg-[#EBEDF0] px-3.5 py-2 notion-border-b flex items-center justify-between select-none">
+      <div class="flex items-center space-x-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E06C75] inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E5C07B] inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#98C379] inline-block"></span>
+      </div>
+      <div class="text-[11px] font-semibold tracking-wider text-neutral-600 mono">TAVERN VAULT // 2026</div>
+      <div class="flex items-center space-x-1.5">
+        <span id="header-user" class="text-[11px] text-neutral-500">未登录</span>
+      </div>
+    </header>
+
+    <!-- 顶栏二级菜单 -->
+    <nav class="bg-[#F0F2F4] px-3 py-1.5 notion-border-b flex justify-between items-center text-[11px] text-neutral-500 mono">
+      <div class="space-x-2.5">
+        <span onclick="switchTab('chars')" class="cursor-pointer hover:text-black">Cards</span>
+        <span onclick="switchTab('themes')" class="cursor-pointer hover:text-black">Themes</span>
+        <span onclick="switchTab('presets')" class="cursor-pointer hover:text-black">Presets</span>
+        <span onclick="switchTab('backup')" class="cursor-pointer hover:text-black">Backup</span>
+      </div>
+      <div id="auth-btn-area">
+        <button onclick="openAuthModal()" class="text-neutral-700 font-medium hover:underline">登录 / 注册</button>
+      </div>
+    </nav>
+
+    <!-- 主体内容区 -->
+    <main class="flex-1 overflow-y-auto p-3.5 space-y-3.5 no-scrollbar">
+
+      <!-- 未登录锁屏 -->
+      <div id="guest-guard" class="bg-white notion-border rounded-xl p-6 text-center my-8 space-y-3">
+        <div class="w-10 h-10 mx-auto rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400 text-lg">🔒</div>
+        <div class="text-sm font-semibold text-neutral-700">登录你的酒馆专属小仓库</div>
+        <p class="text-[11px] text-neutral-400 leading-relaxed">
+          支持直读角色卡 PNG / JSON（自动提取人设、开场白与世界书）、导入聊天记录文件、收纳喜爱句子切片截图、管理美化与预设。
+        </p>
+        <button onclick="openAuthModal()" class="w-full py-2.5 bg-neutral-800 text-white text-xs rounded-lg font-medium tracking-wide">立即注册 / 登录</button>
+      </div>
+
+      <!-- 登录后工作区 -->
+      <div id="app-workspace" class="hidden space-y-3.5">
+
+        <!-- 顶部个人资料栏 -->
+        <div class="bg-white notion-border rounded-xl p-2.5 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5 min-w-0">
+            <div onclick="openProfileModal()" class="w-10 h-10 rounded-full bg-neutral-100 notion-border flex items-center justify-center overflow-hidden cursor-pointer flex-shrink-0">
+              <img id="user-avatar-display" src="" class="w-full h-full object-cover hidden">
+              <span id="user-avatar-fallback" class="text-xs font-bold text-neutral-600">?</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center space-x-1">
+                <span id="user-name-display" class="text-xs font-semibold text-neutral-800 truncate">用户名</span>
+                <button onclick="openProfileModal()" class="text-neutral-400 hover:text-black text-[11px]">✎</button>
+              </div>
+              <p class="text-[10px] text-neutral-400 mono">IndexedDB 大容量防丢失存储已启用</p>
+            </div>
+          </div>
+          <button onclick="openProfileModal()" class="text-[11px] text-neutral-600 notion-border px-2.5 py-1 rounded bg-[#F7F8FA] hover:bg-neutral-100">换头像/改名</button>
+        </div>
+
+        <!-- 顶部分类导航栏 (已移除手帐记账，专注酒馆全套收纳) -->
+        <div class="grid grid-cols-4 border-b border-[#D5D8DC] text-[11px] font-medium text-center">
+          <button id="tab-chars-btn" onclick="switchTab('chars')" class="py-2 border-b-2 border-neutral-800 text-neutral-800 -mb-[1px]">角色卡库</button>
+          <button id="tab-themes-btn" onclick="switchTab('themes')" class="py-2 text-neutral-400 hover:text-neutral-600 -mb-[1px]">美化储存区</button>
+          <button id="tab-presets-btn" onclick="switchTab('presets')" class="py-2 text-neutral-400 hover:text-neutral-600 -mb-[1px]">预设储存区</button>
+          <button id="tab-backup-btn" onclick="switchTab('backup')" class="py-2 text-neutral-400 hover:text-neutral-600 -mb-[1px]">全库备份</button>
+        </div>
+
+        <!-- ==================== 分区 1：角色卡列表与独立详情页 ==================== -->
+        <section id="panel-chars" class="space-y-3.5">
+
+          <!-- 1A. 角色卡总览视图 -->
+          <div id="char-list-view" class="space-y-3">
+            <!-- 顶部导入角色卡操作区 -->
+            <div class="bg-white notion-border rounded-xl p-3 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-semibold text-neutral-800">导入 / 创建角色卡</div>
+                  <div class="text-[10px] text-neutral-400">支持直接上传酒馆导出的角色 PNG 原图或 JSON 文件，自动解析人设与世界书</div>
+                </div>
+                <span id="count-chars" class="mono text-xs px-2 py-0.5 rounded notion-tag font-semibold">0 张</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 pt-0.5">
+                <label class="py-2 px-2 bg-neutral-800 text-white rounded-lg text-[11px] font-medium text-center cursor-pointer hover:bg-black flex items-center justify-center gap-1">
+                  <span>📥 导入 PNG / JSON 卡</span>
+                  <input type="file" accept=".png,.json,image/png,application/json" multiple onchange="handleCardFileImport(event)" class="hidden">
+                </label>
+                <button onclick="openManualCharModal()" class="py-2 px-2 bg-[#F7F8FA] notion-border text-neutral-700 rounded-lg text-[11px] font-medium hover:bg-neutral-100">
+                  + 手动新建空白卡
+                </button>
+              </div>
+            </div>
+
+            <!-- 搜索角色 -->
+            <div class="flex gap-2">
+              <input id="char-search-in" type="text" oninput="renderCharList()" placeholder="搜索角色名、标签或人设关键词…" class="flex-1 p-2 bg-white notion-border rounded-lg text-xs outline-none">
+            </div>
+
+            <!-- 角色卡网格/列表 -->
+            <div id="char-list-container" class="space-y-2.5"></div>
+          </div>
+
+          <!-- 1B. 点击进入单独的角色卡详情页 (Details / Worldbook / Chats / Snippets) -->
+          <div id="char-detail-view" class="hidden space-y-3">
+            <!-- 返回与角色头部信息 -->
+            <div class="bg-white notion-border rounded-xl p-3 space-y-3">
+              <div class="flex items-center justify-between border-b pb-2">
+                <button onclick="closeCharDetail()" class="text-xs text-neutral-600 hover:text-black flex items-center gap-1 font-medium">
+                  <span>← 返回角色列表</span>
+                </button>
+                <div class="flex items-center gap-2">
+                  <button onclick="exportCurrentDetailCharJson()" class="text-[11px] notion-tag px-2 py-0.5 rounded hover:bg-neutral-200">导出 JSON</button>
+                  <button onclick="deleteCurrentDetailChar()" class="text-[11px] text-red-500 hover:underline">删除角色</button>
+                </div>
+              </div>
+
+              <div class="flex gap-3 items-start">
+                <!-- 拍立得角色立绘 (点击可换头像) -->
+                <label class="w-20 h-26 polaroid-card bg-neutral-100 flex-shrink-0 overflow-hidden cursor-pointer relative group block" style="height: 100px;">
+                  <img id="detail-char-avatar" src="" class="w-full h-full object-cover hidden">
+                  <div id="detail-char-avatar-empty" class="w-full h-full flex items-center justify-center text-[10px] text-neutral-400 text-center p-1">点击上传立绘</div>
+                  <input type="file" accept="image/*" onchange="changeDetailCharAvatar(event)" class="hidden">
+                </label>
+
+                <div class="flex-1 min-w-0 space-y-1.5">
+                  <input id="detail-char-name" type="text" onchange="saveDetailCharMeta()" class="text-sm font-bold text-neutral-800 bg-transparent border-b border-transparent focus:border-neutral-400 outline-none w-full" placeholder="角色姓名">
+                  <input id="detail-char-tags" type="text" onchange="saveDetailCharMeta()" class="text-[11px] text-neutral-500 bg-[#F7F8FA] notion-border rounded px-2 py-1 w-full outline-none" placeholder="分类标签 (用逗号分隔)">
+                  <div class="text-[10px] text-neutral-400 mono" id="detail-char-stats">0 世界书条目 · 0 聊天记录 · 0 喜爱切片</div>
+                </div>
+              </div>
+
+              <!-- 角色卡内部 4 大子板块切换 (复刻参考图 Details / Worldbook / Chats / Snippets) -->
+              <div class="grid grid-cols-4 gap-1 bg-[#F0F2F4] p-1 rounded-lg text-[11px] font-medium text-center">
+                <button id="subtab-persona-btn" onclick="switchCharSubTab('persona')" class="py-1.5 rounded bg-white text-neutral-800 shadow-sm">人设资料</button>
+                <button id="subtab-wi-btn" onclick="switchCharSubTab('wi')" class="py-1.5 rounded text-neutral-500 hover:text-neutral-800">世界书</button>
+                <button id="subtab-chats-btn" onclick="switchCharSubTab('chats')" class="py-1.5 rounded text-neutral-500 hover:text-neutral-800">聊天记录</button>
+                <button id="subtab-clips-btn" onclick="switchCharSubTab('clips')" class="py-1.5 rounded text-neutral-500 hover:text-neutral-800">喜爱切片</button>
+              </div>
+            </div>
+
+            <!-- 子板块 1：角色人设、开场白、性格设定 -->
+            <div id="subpanel-persona" class="bg-white notion-border rounded-xl p-3 space-y-3 text-xs">
+              <div>
+                <label class="text-[11px] font-semibold text-neutral-500 uppercase mono block mb-1">DESCRIPTION / 角色人设描述</label>
+                <textarea id="detail-char-desc" rows="6" onchange="saveDetailCharMeta()" placeholder="角色的外貌、背景、核心性格设定…" class="w-full p-2.5 bg-[#F7F8FA] notion-border rounded-lg text-xs leading-relaxed outline-none"></textarea>
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-neutral-500 uppercase mono block mb-1">FIRST MESSAGE / 开场白</label>
+                <textarea id="detail-char-firstmes" rows="5" onchange="saveDetailCharMeta()" placeholder="角色的第一句开场白…" class="w-full p-2.5 bg-[#F7F8FA] notion-border rounded-lg text-xs leading-relaxed outline-none"></textarea>
+              </div>
+              <div class="grid grid-cols-1 gap-2">
+                <div>
+                  <label class="text-[11px] font-semibold text-neutral-500 uppercase mono block mb-1">PERSONALITY & SCENARIO / 性格摘要与场景</label>
+                  <textarea id="detail-char-scenario" rows="3" onchange="saveDetailCharMeta()" placeholder="性格补充或互动场景设定…" class="w-full p-2 bg-[#F7F8FA] notion-border rounded-lg text-xs outline-none"></textarea>
+                </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-neutral-500 uppercase mono block mb-1">CREATOR NOTES / 作者备注与个人评测</label>
+                  <textarea id="detail-char-notes" rows="3" onchange="saveDetailCharMeta()" placeholder="记录你对该角色卡的使用心得或注意事项…" class="w-full p-2 bg-[#F7F8FA] notion-border rounded-lg text-xs outline-none"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- 子板块 2：角色世界书 (Character Book / World Info) -->
+            <div id="subpanel-wi" class="hidden bg-white notion-border rounded-xl p-3 space-y-3 text-xs">
+              <div class="flex justify-between items-center">
+                <div>
+                  <div class="font-semibold text-neutral-700">关联世界书 (World Info)</div>
+                  <div class="text-[10px] text-neutral-400">可自动从角色卡读取，也可单独导入世界书 JSON 文件</div>
+                </div>
+                <div class="flex gap-1.5">
+                  <label class="px-2 py-1 bg-neutral-800 text-white rounded text-[11px] cursor-pointer">
+                    + 导入世界书 JSON
+                    <input type="file" accept=".json" onchange="importWorldbookJson(event)" class="hidden">
+                  </label>
+                  <button onclick="addManualWiEntry()" class="px-2 py-1 bg-[#F7F8FA] notion-border rounded text-[11px]">+ 新增条目</button>
+                </div>
+              </div>
+              <div id="detail-wi-list" class="space-y-2"></div>
+            </div>
+
+            <!-- 子板块 3：专属聊天记录导入与阅读器 -->
+            <div id="subpanel-chats" class="hidden bg-white notion-border rounded-xl p-3 space-y-3 text-xs">
+              <div class="flex justify-between items-center">
+                <div>
+                  <div class="font-semibold text-neutral-700">聊天记录档案库</div>
+                  <div class="text-[10px] text-neutral-400">支持导入酒馆导出的 .jsonl 或 .json 聊天文件</div>
+                </div>
+                <label class="px-2.5 py-1.5 bg-neutral-800 text-white rounded-lg text-[11px] cursor-pointer font-medium">
+                  📥 导入聊天文件 (.jsonl/.json)
+                  <input type="file" accept=".jsonl,.json,application/json,text/plain" multiple onchange="importCharChatFiles(event)" class="hidden">
+                </label>
+              </div>
+              <!-- 会话列表 -->
+              <div id="detail-chat-sessions" class="space-y-2"></div>
+              <!-- 展开阅读某段聊天记录并支持一键摘录喜爱句子 -->
+              <div id="detail-chat-reader" class="hidden border-t pt-3 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span id="reader-chat-title" class="font-bold text-neutral-800">会话详情</span>
+                  <button onclick="closeChatReader()" class="text-[11px] text-neutral-500 underline">收起阅读器</button>
+                </div>
+                <div class="text-[10px] text-neutral-400">💡 提示：点击任意一句话右侧的「★ 存为喜爱切片」即可直接收入该角色的喜爱句子区</div>
+                <div id="reader-messages-box" class="max-h-[420px] overflow-y-auto space-y-2 pr-1"></div>
+              </div>
+            </div>
+
+            <!-- 子板块 4：喜爱句子的截图 & 切片收藏区 (含自定义 CSS 美化生成图片) -->
+            <div id="subpanel-clips" class="hidden bg-white notion-border rounded-xl p-3 space-y-3 text-xs">
+              <div class="flex justify-between items-center">
+                <div>
+                  <div class="font-semibold text-neutral-700">喜爱句子的截图 & 名场面切片</div>
+                  <div class="text-[10px] text-neutral-400">上传你在酒馆保存的切片截图，或直接粘贴句子生成美化卡片</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="py-2 bg-neutral-800 text-white rounded-lg text-[11px] font-medium text-center cursor-pointer">
+                  🖼️ 上传切片截图图片
+                  <input type="file" accept="image/*" multiple onchange="uploadCharClipImages(event)" class="hidden">
+                </label>
+                <button onclick="openWebClipCreatorModal()" class="py-2 bg-[#F7F8FA] notion-border text-neutral-700 rounded-lg text-[11px] font-medium">
+                  ✨ 粘贴句子/自定义CSS制图
+                </button>
+              </div>
+              <div id="detail-clips-list" class="space-y-3 pt-1"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== 分区 2：美化储存区 (THEMES VAULT) ==================== -->
+        <section id="panel-themes" class="hidden space-y-3">
+          <div class="bg-white notion-border rounded-xl p-3 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div>
+                <div class="text-xs font-semibold text-neutral-800">酒馆美化储存区</div>
+                <div class="text-[10px] text-neutral-400">收纳美化的展示预览图、按作者分类筛选、保存 CSS 代码或美化 JSON 包</div>
+              </div>
+              <button onclick="openThemeModal()" class="px-2.5 py-1.5 bg-neutral-800 text-white rounded-lg text-[11px] font-medium">+ 新建美化收录</button>
+            </div>
+            <!-- 作者分类筛选栏 -->
+            <div id="theme-author-filters" class="flex gap-1.5 overflow-x-auto no-scrollbar pt-1"></div>
+          </div>
+          <div id="theme-list-container" class="space-y-3"></div>
+        </section>
+
+        <!-- ==================== 分区 3：预设储存区 (PRESETS VAULT) ==================== -->
+        <section id="panel-presets" class="hidden space-y-3">
+          <div class="bg-white notion-border rounded-xl p-3 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div>
+                <div class="text-xs font-semibold text-neutral-800">酒馆预设 & 脚步储存区</div>
+                <div class="text-[10px] text-neutral-400">收纳破限预设、文风预设、正则脚本、顶栏插件 JSON，随时一键下载回酒馆</div>
+              </div>
+              <div class="flex gap-1.5">
+                <label class="px-2.5 py-1.5 bg-neutral-800 text-white rounded-lg text-[11px] font-medium cursor-pointer">
+                  📥 导入预设 JSON
+                  <input type="file" accept=".json" multiple onchange="importPresetJsonFiles(event)" class="hidden">
+                </label>
+                <button onclick="openPresetModal()" class="px-2 py-1.5 bg-[#F7F8FA] notion-border rounded-lg text-[11px]">+ 手动录入</button>
+              </div>
+            </div>
+          </div>
+          <div id="preset-list-container" class="space-y-2.5"></div>
+        </section>
+
+        <!-- ==================== 分区 4：全库防丢失备份 ==================== -->
+        <section id="panel-backup" class="hidden space-y-3">
+          <div class="bg-white notion-border rounded-xl p-4 space-y-3">
+            <div class="text-xs font-semibold text-neutral-800">全库防丢失打包导出与恢复</div>
+            <p class="text-[11px] text-neutral-500 leading-relaxed">
+              本网站已采用浏览器底层 <b>IndexedDB 大容量数据库</b>，高清立绘、切片截图、长篇聊天记录与美化文件均不会因常规容量限制而报错。建议定期导出全库备份文件保存到手机本地或网盘。
+            </p>
+            <div class="flex gap-2 pt-1">
+              <button onclick="exportFullVault()" class="flex-1 py-2.5 bg-neutral-800 text-white rounded-lg text-xs font-medium hover:bg-black">📦 导出全库备份 (.json)</button>
+              <label class="flex-1 py-2.5 bg-white notion-border text-center text-neutral-700 rounded-lg text-xs font-medium cursor-pointer hover:bg-neutral-50">
+                📂 导入恢复备份
+                <input type="file" accept=".json" onchange="importFullVault(event)" class="hidden">
+              </label>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- 底部状态栏 -->
+    <footer class="bg-[#EBEDF0] px-3.5 py-1.5 notion-border-t flex justify-between items-center text-[10px] text-neutral-400 mono">
+      <span>SILLYTAVERN ARCHIVE v3.0</span>
+      <span>PNG/JSON/JSONL READY</span>
+    </footer>
+
+    <!-- ==================== 弹窗 1：登录 / 注册 ==================== -->
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="w-full max-w-[340px] bg-white notion-border rounded-2xl p-5 shadow-2xl space-y-3.5">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 id="auth-modal-title" class="text-xs font-semibold text-neutral-800 uppercase mono">REGISTER ACCOUNT</h3>
+          <button onclick="closeAuthModal()" class="text-neutral-400 hover:text-black text-sm">✕</button>
+        </div>
+        <div class="space-y-2.5 text-xs">
+          <div>
+            <label class="text-[11px] text-neutral-500 mb-1 block">用户名 (账号)</label>
+            <input id="auth-username" type="text" placeholder="输入你的昵称或用户名" class="w-full p-2 bg-[#F7F8FA] notion-border rounded text-xs outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-neutral-500 mb-1 block">密码</label>
+            <div class="relative">
+              <input id="auth-pass" type="password" placeholder="请输入密码" class="w-full p-2 pr-9 bg-[#F7F8FA] notion-border rounded text-xs outline-none">
+              <button type="button" onclick="togglePasswordVisibility('auth-pass', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black text-xs select-none">👁</button>
+            </div>
+          </div>
+          <div id="field-confirm-pass">
+            <label class="text-[11px] text-neutral-500 mb-1 block">二次确认密码</label>
+            <div class="relative">
+              <input id="auth-pass-confirm" type="password" placeholder="请再次输入相同密码" class="w-full p-2 pr-9 bg-[#F7F8FA] notion-border rounded text-xs outline-none">
+              <button type="button" onclick="togglePasswordVisibility('auth-pass-confirm', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black text-xs select-none">👁</button>
+            </div>
+          </div>
+        </div>
+        <div id="auth-error" class="text-[11px] text-red-500 hidden"></div>
+        <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="w-full py-2 bg-neutral-800 text-white rounded-lg text-xs font-medium hover:bg-black">完成注册并登录</button>
+        <div class="text-center pt-1">
+          <button id="auth-toggle-mode" onclick="toggleAuthMode()" class="text-[11px] text-neutral-400 hover:text-neutral-700 underline">已有账号？切换到直接登录</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗 2：修改个人头像与用户名 (需验证密码) ==================== -->
+    <div id="profile-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="w-full max-w-[340px] bg-white notion-border rounded-2xl p-5 shadow-2xl space-y-3.5 text-xs">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="text-xs font-semibold uppercase mono">个人资料设置</h3>
+          <button onclick="closeProfileModal()" class="text-neutral-400 hover:text-black">✕</button>
+        </div>
+        <div class="flex flex-col items-center space-y-2 py-1">
+          <div class="w-16 h-16 rounded-full bg-neutral-100 notion-border flex items-center justify-center overflow-hidden">
+            <img id="profile-modal-avatar-preview" src="" class="w-full h-full object-cover hidden">
+            <span id="profile-modal-avatar-fallback" class="text-xl font-bold text-neutral-400">?</span>
+          </div>
+          <label class="text-[11px] text-neutral-600 cursor-pointer underline">
+            从手机相册选择头像图片
+            <input type="file" accept="image/*" onchange="handleAvatarUpload(event)" class="hidden">
+          </label>
+        </div>
+        <div class="space-y-2">
+          <div>
+            <label class="text-[11px] text-neutral-500 block mb-1">新用户名</label>
+            <input id="profile-new-username" type="text" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+          </div>
+          <div class="pt-1 border-t">
+            <label class="text-[11px] text-red-500 font-medium block mb-1">验证原密码确认修改</label>
+            <div class="relative">
+              <input id="profile-verify-pass" type="password" placeholder="请输入当前登录密码" class="w-full p-2 pr-9 bg-[#F7F8FA] notion-border rounded outline-none">
+              <button type="button" onclick="togglePasswordVisibility('profile-verify-pass', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black text-xs select-none">👁</button>
+            </div>
+          </div>
+        </div>
+        <div id="profile-error" class="text-[11px] text-red-500 hidden"></div>
+        <button onclick="saveProfileChanges()" class="w-full py-2 bg-neutral-800 text-white rounded-lg font-medium hover:bg-black">验证密码并保存</button>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗 3：手动新建空白角色卡 ==================== -->
+    <div id="manual-char-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="w-full max-w-[350px] bg-white notion-border rounded-2xl p-5 shadow-2xl space-y-3 text-xs">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="text-xs font-semibold uppercase mono">手动新建角色卡</h3>
+          <button onclick="closeManualCharModal()" class="text-neutral-400">✕</button>
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">角色姓名</label>
+          <input id="mc-name" type="text" placeholder="输入角色名" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">上传立绘图片 (可选)</label>
+          <input id="mc-avatar-file" type="file" accept="image/*" class="w-full text-[11px]">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">分类标签 (逗号隔开)</label>
+          <input id="mc-tags" type="text" placeholder="如: OC, 古风, 现代" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">角色人设描述</label>
+          <textarea id="mc-desc" rows="3" placeholder="填写角色设定…" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none"></textarea>
+        </div>
+        <button onclick="createManualCharacter()" class="w-full py-2 bg-neutral-800 text-white rounded-lg font-medium">创建并进入角色卡</button>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗 4：网站端喜爱句子自定义 CSS 切片制图工坊 ==================== -->
+    <div id="web-clip-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="w-full max-w-[380px] max-h-[90vh] overflow-y-auto bg-white notion-border rounded-2xl p-4 shadow-2xl space-y-3 text-xs">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="text-xs font-semibold uppercase mono">喜爱句子切片制图 & 收藏</h3>
+          <button onclick="closeWebClipCreatorModal()" class="text-neutral-400">✕</button>
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">喜爱的句子 / 段落内容</label>
+          <textarea id="wc-text" rows="4" oninput="updateWebClipPreview()" placeholder="输入或粘贴你喜欢的对话段落、句子…" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none"></textarea>
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">自定义卡片 CSS 样式 (可选)</label>
+          <textarea id="wc-css" rows="2" oninput="updateWebClipPreview()" placeholder="#web-clip-preview-card { background: #fff; border-radius: 12px; }" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none mono text-[10px]"></textarea>
+        </div>
+        <style id="wc-dynamic-style"></style>
+        <div class="p-2 bg-[#ECEEF0] rounded-lg flex justify-center">
+          <div id="web-clip-preview-card" class="w-full bg-white notion-border p-4 space-y-2 shadow-sm">
+            <div class="flex justify-between items-center border-b pb-1.5">
+              <div class="flex space-x-1">
+                <span class="w-2 h-2 rounded-full bg-[#E06C75]"></span>
+                <span class="w-2 h-2 rounded-full bg-[#E5C07B]"></span>
+                <span class="w-2 h-2 rounded-full bg-[#98C379]"></span>
+              </div>
+              <span id="wc-preview-char" class="text-[11px] font-semibold text-neutral-600">@ 角色</span>
+            </div>
+            <div id="wc-preview-body" class="text-xs leading-relaxed text-neutral-800 whitespace-pre-wrap py-1 font-serif">请输入喜爱的句子…</div>
+            <div class="border-t border-dashed pt-1.5 flex justify-between text-[9px] text-neutral-400 mono">
+              <span>FAVORITE QUOTE</span>
+              <span id="wc-preview-date">2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="saveWebClipToChar(false)" class="py-2 bg-neutral-800 text-white rounded-lg font-medium">仅存入角色喜爱区</button>
+          <button onclick="saveWebClipToChar(true)" class="py-2 bg-emerald-700 text-white rounded-lg font-medium">存入并下载PNG图片</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗 5：新建美化收录 (含展示图 & 作者分类) ==================== -->
+    <div id="theme-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="w-full max-w-[360px] max-h-[90vh] overflow-y-auto bg-white notion-border rounded-2xl p-5 shadow-2xl space-y-3 text-xs">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="text-xs font-semibold uppercase mono">新建美化收录</h3>
+          <button onclick="closeThemeModal()" class="text-neutral-400">✕</button>
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">美化名称</label>
+          <input id="tm-name" type="text" placeholder="例如：†回音（日夜） / 韩系奶油风" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">美化作者分类 (用于按作者筛选)</label>
+          <input id="tm-author" type="text" placeholder="例如：@NAKARI / 自制 / 某某老师" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">导入美化展示预览图 (支持多张)</label>
+          <input id="tm-images" type="file" accept="image/*" multiple class="w-full text-[11px]">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">导入美化 JSON 文件 (可选，如酒馆主题文件)</label>
+          <input id="tm-json-file" type="file" accept=".json,.css,.txt" class="w-full text-[11px]">
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">CSS 代码 / 美化备注说明</label>
+          <textarea id="tm-code" rows="4" placeholder="可粘贴自定义 CSS 代码或配色参数…" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none mono text-[10px]"></textarea>
+        </div>
+        <button onclick="saveNewTheme()" class="w-full py-2 bg-neutral-800 text-white rounded-lg font-medium">保存到美化储存区</button>
+      </div>
+    </div>
+
+    <!-- ==================== 弹窗 6：手动新建预设收录 ==================== -->
+    <div id="preset-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="w-full max-w-[360px] bg-white notion-border rounded-2xl p-5 shadow-2xl space-y-3 text-xs">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="text-xs font-semibold uppercase mono">手动录入预设 / 脚本</h3>
+          <button onclick="closePresetModal()" class="text-neutral-400">✕</button>
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">预设名称</label>
+          <input id="pm-name" type="text" placeholder="例如：克劳德破限预设 v4 / 小说文风预设" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-neutral-500 block mb-1">分类类型</label>
+            <select id="pm-category" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+              <option value="聊天预设">聊天/文风预设</option>
+              <option value="正则脚本">正则脚本</option>
+              <option value="酒馆助手脚本">酒馆助手脚本</option>
+              <option value="世界书模板">全局世界书</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] text-neutral-500 block mb-1">作者 / 来源</label>
+            <input id="pm-author" type="text" placeholder="作者名或自用" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="text-[11px] text-neutral-500 block mb-1">预设内容 / JSON 或提示词文本</label>
+          <textarea id="pm-content" rows="5" placeholder="粘贴预设文本或 JSON 内容…" class="w-full p-2 bg-[#F7F8FA] notion-border rounded outline-none mono text-[10px]"></textarea>
+        </div>
+        <button onclick="saveManualPreset()" class="w-full py-2 bg-neutral-800 text-white rounded-lg font-medium">保存到预设储存区</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. IndexedDB 大容量持久化存储引擎（彻底解决手机端图片/角色卡/聊天记录防丢失）
+       ========================================================================= */
+    const VaultDB = {
+      db: null,
+      init() {
+        if (this.db) return Promise.resolve(this.db);
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open('SillyTavernVaultDB_v3', 1);
+          req.onupgradeneeded = (e) => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains('kv')) {
+              d.createObjectStore('kv');
+            }
+          };
+          req.onsuccess = () => { this.db = req.result; resolve(this.db); };
+          req.onerror = () => reject(req.error);
+        });
+      },
+      async get(key) {
+        const d = await this.init();
+        return new Promise((res, rej) => {
+          const tx = d.transaction('kv', 'readonly');
+          const r = tx.objectStore('kv').get(key);
+          r.onsuccess = () => res(r.result);
+          r.onerror = () => rej(r.error);
+        });
+      },
+      async set(key, val) {
+        const d = await this.init();
+        return new Promise((res, rej) => {
+          const tx = d.transaction('kv', 'readwrite');
+          tx.objectStore('kv').put(val, key);
+          tx.oncomplete = () => res();
+          tx.onerror = () => rej(tx.error);
+        });
+      }
+    };
+
+    let currentUser = null;
+    let isRegisterMode = true;
+    let tempAvatarBase64 = null;
+    let currentDetailCharIndex = -1;
+    let currentThemeAuthorFilter = 'ALL';
+
+    let db = {
+      users: {} // { username: { password, avatar, data: { chars: [], themes: [], presets: [] } } }
+    };
+
+    async function saveToStorage() {
+      try {
+        await VaultDB.set('ARCHIVE_DB_V3', db);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const saved = await VaultDB.get('ARCHIVE_DB_V3');
+        if (saved && saved.users) {
+          db = saved;
+        } else {
+          // 兼容旧版 localStorage 账号迁移
+          const old = localStorage.getItem('ARCHIVE_DB');
+          if (old) {
+            const parsed = JSON.parse(old);
+            if (parsed && parsed.users) {
+              Object.keys(parsed.users).forEach(u => {
+                const uObj = parsed.users[u];
+                uObj.data = uObj.data || {};
+                uObj.data.chars = (uObj.data.chars || []).map(c => ({
+                  id: c.id || Date.now() + Math.random(),
+                  name: c.name || '未命名',
+                  avatar: c.avatar || '',
+                  tags: c.tags || [],
+                  desc: c.desc || '',
+                  first_mes: c.first_mes || '',
+                  scenario: c.scenario || '',
+                  notes: c.notes || '',
+                  worldbook: c.worldbook || [],
+                  chats: c.chats || [],
+                  clips: c.clips || []
+                }));
+                uObj.data.themes = uObj.data.themes || [];
+                uObj.data.presets = uObj.data.presets || [];
+              });
+              db = parsed;
+              await saveToStorage();
+            }
+          }
+        }
+      } catch (e) {}
+
+      const loggedUser = localStorage.getItem('CURRENT_USER');
+      if (loggedUser && db.users[loggedUser]) {
+        setUser(loggedUser);
+      }
+    });
+
+    /* =========================================================================
+       2. PNG 角色卡二进制 tEXt / iTXt 元数据无损解析器（直接读取人设与世界书）
+       ========================================================================= */
+    function decodeBase64Utf8(base64Str) {
+      const binStr = atob(base64Str.replace(/\s/g, ''));
+      const bytes = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) {
+        bytes[i] = binStr.charCodeAt(i);
+      }
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    async function parsePngCharacterCard(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const view = new DataView(arrayBuffer);
+      const bytes = new Uint8Array(arrayBuffer);
+
+      // Check PNG signature
+      if (view.getUint32(0) !== 0x89504E47 || view.getUint32(4) !== 0x0D0A1A0A) {
+        throw new Error('不是有效的 PNG 文件');
+      }
+
+      let offset = 8;
+      let charJsonStr = null;
+
+      while (offset < bytes.length) {
+        const length = view.getUint32(offset);
+        const type = String.fromCharCode(
+          bytes[offset + 4], bytes[offset + 5], bytes[offset + 6], bytes[offset + 7]
+        );
+        const dataStart = offset + 8;
+        const dataEnd = dataStart + length;
+
+        if (type === 'tEXt' || type === 'iTXt') {
+          const chunkBytes = bytes.slice(dataStart, dataEnd);
+          let nullIdx = chunkBytes.indexOf(0);
+          if (nullIdx !== -1) {
+            const keyword = new TextDecoder('ascii').decode(chunkBytes.slice(0, nullIdx)).toLowerCase();
+            if (keyword === 'chara' || keyword === 'ccv3') {
+              // For iTXt there may be compression flags and extra nulls, find base64 payload after last null
+              let textStart = nullIdx + 1;
+              if (type === 'iTXt') {
+                // Skip compression flag(1), compression method(1), lang tag(null-term), translated keyword(null-term)
+                let p = nullIdx + 3;
+                while (p < chunkBytes.length && chunkBytes[p] !== 0) p++;
+                p++;
+                while (p < chunkBytes.length && chunkBytes[p] !== 0) p++;
+                textStart = p + 1;
+              }
+              const b64Raw = new TextDecoder('ascii').decode(chunkBytes.slice(textStart));
+              try {
+                charJsonStr = decodeBase64Utf8(b64Raw);
+                break;
+              } catch (e) {}
+            }
+          }
+        }
+        if (type === 'IEND') break;
+        offset = dataEnd + 4; // skip CRC
+      }
+
+      // Convert PNG file to DataURL for avatar display
+      const avatarDataUrl = await new Promise((res) => {
+        const reader = new FileReader();
+        reader.onload = (e) => res(e.target.result);
+        reader.readAsDataURL(file);
+      });
+
+      if (!charJsonStr) {
+        // 如果是一张普通立绘 PNG，也创建一个以文件名为名的角色卡
+        return {
+          name: file.name.replace(/\.png$/i, ''),
+          avatar: avatarDataUrl,
+          tags: ['PNG导入'],
+          desc: '',
+          first_mes: '',
+          scenario: '',
+          notes: '该 PNG 未检测到内嵌角色元数据，已作为立绘导入。',
+          worldbook: [],
+          chats: [],
+          clips: []
+        };
+      }
+
+      const rawObj = JSON.parse(charJsonStr);
+      return normalizeCharacterObject(rawObj, avatarDataUrl);
+    }
+
+    function normalizeCharacterObject(rawObj, avatarDataUrl) {
+      const d = rawObj.data || rawObj;
+      const name = d.name || rawObj.name || '未命名角色';
+      const desc = d.description || rawObj.description || '';
+      const first_mes = d.first_mes || rawObj.first_mes || '';
+      const personality = d.personality || rawObj.personality || '';
+      const scenario = d.scenario || rawObj.scenario || '';
+      const notes = d.creator_notes || rawObj.creatorcomment || '';
+      const tags = Array.isArray(d.tags) ? d.tags : (Array.isArray(rawObj.tags) ? rawObj.tags : []);
+
+      // 提取世界书条目 (character_book.entries)
+      const wbEntries = [];
+      const book = d.character_book || rawObj.character_book;
+      if (book && book.entries) {
+        const entriesArr = Array.isArray(book.entries) ? book.entries : Object.values(book.entries);
+        entriesArr.forEach((ent, i) => {
+          const keys = Array.isArray(ent.keys) ? ent.keys.join(', ') : (Array.isArray(ent.key) ? ent.key.join(', ') : '');
+          wbEntries.push({
+            comment: ent.comment || ent.name || `条目 #${i + 1}`,
+            keys: keys,
+            content: ent.content || ''
+          });
+        });
+      }
+
+      return {
+        id: Date.now() + Math.random(),
+        name,
+        avatar: avatarDataUrl || '',
+        tags,
+        desc,
+        first_mes,
+        scenario: [personality ? `【性格】：${personality}` : '', scenario ? `【场景】：${scenario}` : ''].filter(Boolean).join('\n'),
+        notes,
+        worldbook: wbEntries,
+        chats: [],
+        clips: [],
+        rawSpec: rawObj
+      };
+    }
+
+    /* =========================================================================
+       3. 账号登录、密码显隐与个人资料修改
+       ========================================================================= */
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = '🙈';
+      } else {
+        input.type = 'password';
+        btn.innerText = '👁';
+      }
+    }
+
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('auth-error').classList.add('hidden');
+    }
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-modal-title').innerText = isRegisterMode ? "REGISTER ACCOUNT" : "LOGIN ARCHIVE";
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "完成注册并登录" : "立即登录";
+      document.getElementById('auth-toggle-mode').innerText = isRegisterMode ? "已有账号？切换到直接登录" : "没有账号？点击注册新号";
+      document.getElementById('field-confirm-pass').classList.toggle('hidden', !isRegisterMode);
+    }
+
+    function showError(msg) {
+      const err = document.getElementById('auth-error');
+      err.innerText = msg;
+      err.classList.remove('hidden');
+    }
+
+    async function handleAuthSubmit() {
+      const username = document.getElementById('auth-username').value.trim();
+      const pass = document.getElementById('auth-pass').value;
+      if (!username || !pass) return showError("用户名和密码不能为空！");
+
+      if (isRegisterMode) {
+        const confirmPass = document.getElementById('auth-pass-confirm').value;
+        if (pass !== confirmPass) return showError("两次输入的密码不一致！");
+        if (db.users[username]) return showError("该用户名已被注册，请直接登录！");
+
+        db.users[username] = {
+          password: pass,
+          avatar: '',
+          data: { chars: [], themes: [], presets: [] }
+        };
+        await saveToStorage();
+        setUser(username);
+        closeAuthModal();
+      } else {
+        if (!db.users[username] || db.users[username].password !== pass) {
+          return showError("用户名或密码错误！");
+        }
+        setUser(username);
+        closeAuthModal();
+      }
+    }
+
+    function setUser(username) {
+      currentUser = username;
+      localStorage.setItem('CURRENT_USER', username);
+      const userObj = db.users[username];
+      userObj.data.chars = userObj.data.chars || [];
+      userObj.data.themes = userObj.data.themes || [];
+      userObj.data.presets = userObj.data.presets || [];
+
+      document.getElementById('header-user').innerText = username;
+      document.getElementById('user-name-display').innerText = username;
+      renderUserAvatar(userObj.avatar, username);
+
+      document.getElementById('auth-btn-area').innerHTML = `<button onclick="logout()" class="text-neutral-500 hover:text-red-500">退出</button>`;
+      document.getElementById('guest-guard').classList.add('hidden');
+      document.getElementById('app-workspace').classList.remove('hidden');
+      renderAll();
+    }
+
+    function renderUserAvatar(avatarUrl, username) {
+      const img = document.getElementById('user-avatar-display');
+      const fb = document.getElementById('user-avatar-fallback');
+      if (avatarUrl) {
+        img.src = avatarUrl;
+        img.classList.remove('hidden');
+        fb.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        fb.classList.remove('hidden');
+        fb.innerText = username ? username.slice(0, 1).toUpperCase() : '?';
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('CURRENT_USER');
+      document.getElementById('header-user').innerText = '未登录';
+      document.getElementById('auth-btn-area').innerHTML = `<button onclick="openAuthModal()" class="text-neutral-700 font-medium hover:underline">登录 / 注册</button>`;
+      document.getElementById('guest-guard').classList.remove('hidden');
+      document.getElementById('app-workspace').classList.add('hidden');
+    }
+
+    function openProfileModal() {
+      if (!currentUser) return;
+      const user = db.users[currentUser];
+      tempAvatarBase64 = user.avatar || null;
+      document.getElementById('profile-new-username').value = currentUser;
+      document.getElementById('profile-verify-pass').value = '';
+      document.getElementById('profile-error').classList.add('hidden');
+      const img = document.getElementById('profile-modal-avatar-preview');
+      const fb = document.getElementById('profile-modal-avatar-fallback');
+      if (tempAvatarBase64) {
+        img.src = tempAvatarBase64;
+        img.classList.remove('hidden');
+        fb.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        fb.classList.remove('hidden');
+        fb.innerText = currentUser.slice(0, 1).toUpperCase();
+      }
+      document.getElementById('profile-modal').classList.remove('hidden');
+    }
+    function closeProfileModal() { document.getElementById('profile-modal').classList.add('hidden'); }
+
+    function handleAvatarUpload(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        tempAvatarBase64 = ev.target.result;
+        const img = document.getElementById('profile-modal-avatar-preview');
+        img.src = tempAvatarBase64;
+        img.classList.remove('hidden');
+        document.getElementById('profile-modal-avatar-fallback').classList.add('hidden');
+      };
+      r.readAsDataURL(f);
+    }
+
+    async function saveProfileChanges() {
+      const verifyPass = document.getElementById('profile-verify-pass').value;
+      const newUsername = document.getElementById('profile-new-username').value.trim();
+      const errEl = document.getElementById('profile-error');
+      if (!verifyPass || db.users[currentUser].password !== verifyPass) {
+        errEl.innerText = "原密码验证失败！";
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (!newUsername) return;
+      const oldName = currentUser;
+      const uData = db.users[oldName];
+      if (newUsername !== oldName) {
+        if (db.users[newUsername]) {
+          errEl.innerText = "该用户名已存在！";
+          errEl.classList.remove('hidden');
+          return;
+        }
+        db.users[newUsername] = uData;
+        delete db.users[oldName];
+      }
+      db.users[newUsername].avatar = tempAvatarBase64 || '';
+      await saveToStorage();
+      setUser(newUsername);
+      closeProfileModal();
+    }
+
+    /* =========================================================================
+       4. 主导航与角色卡导入、详情页、世界书、聊天记录、喜爱切片管理
+       ========================================================================= */
+    function switchTab(tab) {
+      ['chars', 'themes', 'presets', 'backup'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}-btn`).className = "py-2 text-neutral-400 hover:text-neutral-600 -mb-[1px]";
+      });
+      document.getElementById(`panel-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}-btn`).className = "py-2 border-b-2 border-neutral-800 text-neutral-800 font-semibold -mb-[1px]";
+    }
+
+    function renderAll() {
+      if (!currentUser) return;
+      renderCharList();
+      renderThemeList();
+      renderPresetList();
+    }
+
+    // 导入 PNG 或 JSON 角色卡文件
+    async function handleCardFileImport(event) {
+      const files = [...event.target.files];
+      event.target.value = '';
+      if (!files.length) return;
+
+      let importedCount = 0;
+      for (const file of files) {
+        try {
+          if (file.name.toLowerCase().endsWith('.png') || file.type === 'image/png') {
+            const card = await parsePngCharacterCard(file);
+            db.users[currentUser].data.chars.unshift(card);
+            importedCount++;
+          } else if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
+            const text = await file.text();
+            const jsonObj = JSON.parse(text);
+            const card = normalizeCharacterObject(jsonObj, '');
+            db.users[currentUser].data.chars.unshift(card);
+            importedCount++;
+          }
+        } catch (err) {
+          alert(`解析文件 ${file.name} 失败：${err.message}`);
+        }
+      }
+
+      if (importedCount > 0) {
+        await saveToStorage();
+        renderCharList();
+        openCharDetail(0); // 直接进入刚导入的角色卡详情
+      }
+    }
+
+    function openManualCharModal() { document.getElementById('manual-char-modal').classList.remove('hidden'); }
+    function closeManualCharModal() { document.getElementById('manual-char-modal').classList.add('hidden'); }
+
+    async function createManualCharacter() {
+      const name = document.getElementById('mc-name').value.trim();
+      if (!name) return alert("请输入角色姓名");
+      const tags = document.getElementById('mc-tags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      const desc = document.getElementById('mc-desc').value.trim();
+      const fileIn = document.getElementById('mc-avatar-file');
+      let avatar = '';
+      if (fileIn.files && fileIn.files[0]) {
+        avatar = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = e => res(e.target.result);
+          r.readAsDataURL(fileIn.files[0]);
+        });
+      }
+      db.users[currentUser].data.chars.unshift({
+        id: Date.now(),
+        name, avatar, tags, desc,
+        first_mes: '', scenario: '', notes: '',
+        worldbook: [], chats: [], clips: []
+      });
+      await saveToStorage();
+      closeManualCharModal();
+      renderCharList();
+      openCharDetail(0);
+    }
+
+    function renderCharList() {
+      const chars = db.users[currentUser].data.chars || [];
+      document.getElementById('count-chars').innerText = `${chars.length} 张`;
+      const q = (document.getElementById('char-search-in')?.value || '').trim().toLowerCase();
+      const container = document.getElementById('char-list-container');
+
+      const filtered = chars.map((c, idx) => ({ c, idx })).filter(({ c }) => {
+        if (!q) return true;
+        return (c.name || '').toLowerCase().includes(q) ||
+               (c.desc || '').toLowerCase().includes(q) ||
+               (c.tags || []).some(t => t.toLowerCase().includes(q));
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="bg-white/60 notion-border border-dashed p-8 text-center rounded-xl text-xs text-neutral-400">当前没有角色档案，请点击上方按钮导入 PNG / JSON 角色卡</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(({ c, idx }) => `
+        <div onclick="openCharDetail(${idx})" class="bg-white notion-border p-3 rounded-xl flex gap-3 items-center cursor-pointer hover:bg-neutral-50 transition">
+          <div class="w-14 h-18 polaroid-card bg-neutral-100 flex-shrink-0 overflow-hidden flex items-center justify-center" style="height: 68px;">
+            ${c.avatar ? `<img src="${c.avatar}" class="w-full h-full object-cover">` : `<span class="text-[10px] text-neutral-400">无立绘</span>`}
+          </div>
+          <div class="flex-1 min-w-0 space-y-1">
+            <div class="flex justify-between items-center">
+              <div class="text-xs font-bold text-neutral-800 truncate">${c.name}</div>
+              <span class="text-[10px] text-neutral-400 mono">进入档案 →</span>
+            </div>
+            <p class="text-[11px] text-neutral-500 line-clamp-1">${c.desc || c.first_mes || '点击查看人设、世界书、聊天记录与切片'}</p>
+            <div class="flex items-center justify-between pt-0.5">
+              <div class="flex gap-1 flex-wrap">
+                ${(c.tags || []).slice(0, 3).map(t => `<span class="text-[9px] notion-tag px-1.5 py-0.2 rounded">${t}</span>`).join('')}
+              </div>
+              <span class="text-[10px] text-neutral-400 mono">${(c.worldbook||[]).length}书 · ${(c.chats||[]).length}聊 · ${(c.clips||[]).length}切</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 进入单独的角色卡详情页
+    function openCharDetail(idx) {
+      currentDetailCharIndex = idx;
+      const c = db.users[currentUser].data.chars[idx];
+      if (!c) return;
+
+      document.getElementById('char-list-view').classList.add('hidden');
+      document.getElementById('char-detail-view').classList.remove('hidden');
+
+      const img = document.getElementById('detail-char-avatar');
+      const empty = document.getElementById('detail-char-avatar-empty');
+      if (c.avatar) {
+        img.src = c.avatar;
+        img.classList.remove('hidden');
+        empty.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        empty.classList.remove('hidden');
+      }
+
+      document.getElementById('detail-char-name').value = c.name || '';
+      document.getElementById('detail-char-tags').value = (c.tags || []).join(', ');
+      document.getElementById('detail-char-desc').value = c.desc || '';
+      document.getElementById('detail-char-firstmes').value = c.first_mes || '';
+      document.getElementById('detail-char-scenario').value = c.scenario || '';
+      document.getElementById('detail-char-notes').value = c.notes || '';
+
+      updateDetailCharStats();
+      renderDetailWorldbook();
+      renderDetailChats();
+      renderDetailClips();
+      switchCharSubTab('persona');
+    }
+
+    function closeCharDetail() {
+      currentDetailCharIndex = -1;
+      document.getElementById('char-detail-view').classList.add('hidden');
+      document.getElementById('char-list-view').classList.remove('hidden');
+      renderCharList();
+    }
+
+    function updateDetailCharStats() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      if (!c) return;
+      document.getElementById('detail-char-stats').innerText =
+        `${(c.worldbook || []).length} 世界书条目 · ${(c.chats || []).length} 聊天记录 · ${(c.clips || []).length} 喜爱切片`;
+    }
+
+    function switchCharSubTab(sub) {
+      ['persona', 'wi', 'chats', 'clips'].forEach(s => {
+        document.getElementById(`subpanel-${s}`).classList.add('hidden');
+        document.getElementById(`subtab-${s}-btn`).className = "py-1.5 rounded text-neutral-500 hover:text-neutral-800";
+      });
+      document.getElementById(`subpanel-${sub}`).classList.remove('hidden');
+      document.getElementById(`subtab-${sub}-btn`).className = "py-1.5 rounded bg-white text-neutral-800 shadow-sm font-semibold";
+    }
+
+    async function saveDetailCharMeta() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      if (!c) return;
+      c.name = document.getElementById('detail-char-name').value.trim() || '未命名';
+      c.tags = document.getElementById('detail-char-tags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      c.desc = document.getElementById('detail-char-desc').value;
+      c.first_mes = document.getElementById('detail-char-firstmes').value;
+      c.scenario = document.getElementById('detail-char-scenario').value;
+      c.notes = document.getElementById('detail-char-notes').value;
+      await saveToStorage();
+    }
+
+    async function changeDetailCharAvatar(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const dataUrl = await new Promise(res => {
+        const r = new FileReader();
+        r.onload = ev => res(ev.target.result);
+        r.readAsDataURL(f);
+      });
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.avatar = dataUrl;
+      await saveToStorage();
+      openCharDetail(currentDetailCharIndex);
+    }
+
+    async function deleteCurrentDetailChar() {
+      if (!confirm("确定要删除这张角色卡及其下属记录吗？")) return;
+      db.users[currentUser].data.chars.splice(currentDetailCharIndex, 1);
+      await saveToStorage();
+      closeCharDetail();
+    }
+
+    function exportCurrentDetailCharJson() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      if (!c) return;
+      const exportCard = {
+        spec: "chara_card_v2",
+        spec_version: "2.0",
+        data: {
+          name: c.name,
+          description: c.desc,
+          first_mes: c.first_mes,
+          scenario: c.scenario,
+          creator_notes: c.notes,
+          tags: c.tags,
+          character_book: {
+            entries: (c.worldbook || []).map((w, i) => ({
+              id: i,
+              keys: (w.keys || '').split(',').map(s => s.trim()).filter(Boolean),
+              comment: w.comment || '',
+              content: w.content || '',
+              enabled: true
+            }))
+          }
+        }
+      };
+      const blob = new Blob([JSON.stringify(exportCard, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${c.name}_card.json`;
+      a.click();
+    }
+
+    /* ---- 角色详情子板块 2：世界书渲染与导入 ---- */
+    function renderDetailWorldbook() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      const listEl = document.getElementById('detail-wi-list');
+      c.worldbook = c.worldbook || [];
+      if (!c.worldbook.length) {
+        listEl.innerHTML = `<div class="p-6 text-center text-neutral-400 border border-dashed rounded-lg">该角色暂未绑定世界书条目，可点击右上角导入或新增</div>`;
+        return;
+      }
+      listEl.innerHTML = c.worldbook.map((w, i) => `
+        <div class="bg-[#F7F8FA] notion-border rounded-lg p-2.5 space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-neutral-800">${w.comment || `条目 #${i+1}`}</span>
+            <button onclick="deleteWiEntry(${i})" class="text-[10px] text-neutral-400 hover:text-red-500">删除</button>
+          </div>
+          <div class="text-[10px] text-emerald-700 mono">触发词: ${w.keys || '常驻/无关键字'}</div>
+          <p class="text-[11px] text-neutral-600 whitespace-pre-wrap leading-relaxed bg-white p-2 rounded notion-border">${w.content || ''}</p>
+        </div>
+      `).join('');
+    }
+
+    async function importWorldbookJson(event) {
+      const f = event.target.files[0];
+      event.target.value = '';
+      if (!f) return;
+      try {
+        const obj = JSON.parse(await f.text());
+        const rawEntries = obj.entries ? (Array.isArray(obj.entries) ? obj.entries : Object.values(obj.entries)) : [];
+        const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+        rawEntries.forEach((ent, i) => {
+          const keys = Array.isArray(ent.key) ? ent.key.join(', ') : (Array.isArray(ent.keys) ? ent.keys.join(', ') : '');
+          c.worldbook.push({
+            comment: ent.comment || ent.name || `导入条目 #${i+1}`,
+            keys,
+            content: ent.content || ''
+          });
+        });
+        await saveToStorage();
+        updateDetailCharStats();
+        renderDetailWorldbook();
+      } catch (e) {
+        alert("解析世界书 JSON 失败！");
+      }
+    }
+
+    async function addManualWiEntry() {
+      const comment = prompt("请输入世界书条目名称/备注：");
+      if (!comment) return;
+      const keys = prompt("请输入触发关键词（多个用逗号隔开）：") || '';
+      const content = prompt("请输入世界书条目详细设定内容：") || '';
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.worldbook.push({ comment, keys, content });
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailWorldbook();
+    }
+
+    async function deleteWiEntry(i) {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.worldbook.splice(i, 1);
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailWorldbook();
+    }
+
+    /* ---- 角色详情子板块 3：专属聊天记录导入与阅读 ---- */
+    async function importCharChatFiles(event) {
+      const files = [...event.target.files];
+      event.target.value = '';
+      if (!files.length) return;
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.chats = c.chats || [];
+
+      for (const file of files) {
+        const text = await file.text();
+        let messages = [];
+        let title = file.name.replace(/\.(jsonl|json)$/i, '');
+
+        if (file.name.toLowerCase().endsWith('.jsonl') || text.trim().includes('\n{')) {
+          // 解析 SillyTavern 原生 .jsonl
+          const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          lines.forEach((line, idx) => {
+            try {
+              const obj = JSON.parse(line);
+              if (idx === 0 && (obj.user_name || obj.character_name || obj.chat_metadata)) return;
+              if (obj.mes != null) {
+                messages.push({
+                  name: obj.name || (obj.is_user ? '我' : c.name),
+                  is_user: !!obj.is_user,
+                  mes: obj.mes,
+                  send_date: obj.send_date || ''
+                });
+              }
+            } catch (e) {}
+          });
+        } else {
+          // 解析 .json
+          try {
+            const obj = JSON.parse(text);
+            const arr = Array.isArray(obj) ? obj : (obj.messages || obj.chat || []);
+            arr.forEach(m => {
+              if (m && m.mes != null) {
+                messages.push({
+                  name: m.name || (m.is_user ? '我' : c.name),
+                  is_user: !!m.is_user,
+                  mes: m.mes,
+                  send_date: m.send_date || ''
+                });
+              }
+            });
+          } catch (e) {}
+        }
+
+        c.chats.unshift({
+          id: Date.now() + Math.random(),
+          title,
+          importedAt: new Date().toLocaleDateString(),
+          messages
+        });
+      }
+
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailChats();
+    }
+
+    function renderDetailChats() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      const box = document.getElementById('detail-chat-sessions');
+      c.chats = c.chats || [];
+      if (!c.chats.length) {
+        box.innerHTML = `<div class="p-6 text-center text-neutral-400 border border-dashed rounded-lg">暂未导入该角色的聊天记录文件</div>`;
+        return;
+      }
+      box.innerHTML = c.chats.map((ch, i) => `
+        <div class="bg-[#F7F8FA] notion-border rounded-lg p-2.5 flex justify-between items-center">
+          <div onclick="openChatReader(${i})" class="cursor-pointer flex-1 min-w-0">
+            <div class="font-bold text-neutral-800 truncate">💬 ${ch.title}</div>
+            <div class="text-[10px] text-neutral-400 mono">共 ${(ch.messages||[]).length} 条消息 · 导入于 ${ch.importedAt}</div>
+          </div>
+          <div class="flex gap-2 items-center">
+            <button onclick="openChatReader(${i})" class="px-2 py-1 bg-white notion-border rounded text-[11px]">展开阅读</button>
+            <button onclick="deleteCharChat(${i})" class="text-neutral-400 hover:text-red-500">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openChatReader(chatIdx) {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      const session = c.chats[chatIdx];
+      if (!session) return;
+      document.getElementById('detail-chat-reader').classList.remove('hidden');
+      document.getElementById('reader-chat-title').innerText = `${session.title} (${session.messages.length}条)`;
+      const msgBox = document.getElementById('reader-messages-box');
+      msgBox.innerHTML = session.messages.map((m, mIdx) => {
+        const cleanText = String(m.mes || '').replace(/<[^>]+>/g, '');
+        return `
+          <div class="p-2.5 rounded-lg notion-border ${m.is_user ? 'bg-[#EEF0F2] ml-4' : 'bg-white mr-2'} space-y-1">
+            <div class="flex justify-between items-center text-[10px] text-neutral-400">
+              <span class="font-bold text-neutral-700">${m.name}</span>
+              <button onclick="quickSaveMessageAsClip(${chatIdx}, ${mIdx})" class="text-amber-600 hover:underline font-medium">★ 存为喜爱切片</button>
+            </div>
+            <div class="text-xs text-neutral-800 whitespace-pre-wrap leading-relaxed">${cleanText}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function closeChatReader() {
+      document.getElementById('detail-chat-reader').classList.add('hidden');
+    }
+
+    async function quickSaveMessageAsClip(chatIdx, msgIdx) {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      const msg = c.chats[chatIdx].messages[msgIdx];
+      if (!msg) return;
+      const cleanText = String(msg.mes || '').replace(/<[^>]+>/g, '').trim();
+      c.clips = c.clips || [];
+      c.clips.unshift({
+        id: Date.now(),
+        type: 'quote',
+        text: `${msg.name}：“${cleanText}”`,
+        time: new Date().toLocaleDateString()
+      });
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailClips();
+      alert("已收入该角色的「喜爱切片」区！");
+    }
+
+    async function deleteCharChat(i) {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.chats.splice(i, 1);
+      await saveToStorage();
+      closeChatReader();
+      updateDetailCharStats();
+      renderDetailChats();
+    }
+
+    /* ---- 角色详情子板块 4：喜爱句子截图 & 切片区 ---- */
+    async function uploadCharClipImages(event) {
+      const files = [...event.target.files];
+      event.target.value = '';
+      if (!files.length) return;
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.clips = c.clips || [];
+
+      for (const f of files) {
+        const dataUrl = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = e => res(e.target.result);
+          r.readAsDataURL(f);
+        });
+        c.clips.unshift({
+          id: Date.now() + Math.random(),
+          type: 'image',
+          imageUrl: dataUrl,
+          text: f.name.replace(/\.[a-z0-9]+$/i, ''),
+          time: new Date().toLocaleDateString()
+        });
+      }
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailClips();
+    }
+
+    function openWebClipCreatorModal() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      document.getElementById('wc-preview-char').innerText = `@ ${c ? c.name : '角色'}`;
+      document.getElementById('wc-preview-date').innerText = new Date().toLocaleDateString();
+      document.getElementById('wc-text').value = '';
+      updateWebClipPreview();
+      document.getElementById('web-clip-modal').classList.remove('hidden');
+    }
+    function closeWebClipCreatorModal() {
+      document.getElementById('web-clip-modal').classList.add('hidden');
+    }
+
+    function updateWebClipPreview() {
+      const txt = document.getElementById('wc-text').value || '请输入喜爱的句子…';
+      const css = document.getElementById('wc-css').value || '';
+      document.getElementById('wc-preview-body').innerText = txt;
+      document.getElementById('wc-dynamic-style').textContent = css;
+    }
+
+    async function saveWebClipToChar(andDownloadPng) {
+      const txt = document.getElementById('wc-text').value.trim();
+      if (!txt) return alert("请输入喜爱的句子内容");
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.clips = c.clips || [];
+
+      // 生成高清 PNG DataURL
+      const pngDataUrl = renderQuoteToDataUrl(c.name, txt);
+      c.clips.unshift({
+        id: Date.now(),
+        type: 'image',
+        imageUrl: pngDataUrl,
+        text: txt,
+        time: new Date().toLocaleDateString()
+      });
+
+      if (andDownloadPng) {
+        const a = document.createElement('a');
+        a.href = pngDataUrl;
+        a.download = `喜爱切片_${c.name}_${Date.now().toString().slice(-4)}.png`;
+        a.click();
+      }
+
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailClips();
+      closeWebClipCreatorModal();
+    }
+
+    function renderQuoteToDataUrl(charName, rawText) {
+      const canvas = document.createElement('canvas');
+      const ctx2d = canvas.getContext('2d');
+      const width = 640;
+      const pad = 44;
+      ctx2d.font = '24px "Noto Sans SC", serif';
+      const maxW = width - pad * 2;
+      const lines = [];
+      for (const para of rawText.split(/\r?\n/)) {
+        let cur = '';
+        for (const ch of para) {
+          if (ctx2d.measureText(cur + ch).width > maxW) {
+            lines.push(cur);
+            cur = ch;
+          } else cur += ch;
+        }
+        lines.push(cur);
+      }
+      const lineH = 42;
+      const totalH = 140 + lines.length * lineH;
+      canvas.width = width;
+      canvas.height = totalH;
+
+      ctx2d.fillStyle = '#FFFFFF';
+      ctx2d.fillRect(0, 0, width, totalH);
+      ctx2d.strokeStyle = '#D5D8DC';
+      ctx2d.lineWidth = 3;
+      ctx2d.strokeRect(1.5, 1.5, width - 3, totalH - 3);
+
+      ['#E06C75', '#E5C07B', '#98C379'].forEach((col, i) => {
+        ctx2d.beginPath();
+        ctx2d.arc(pad + 6 + i * 20, 38, 6, 0, Math.PI * 2);
+        ctx2d.fillStyle = col;
+        ctx2d.fill();
+      });
+
+      ctx2d.fillStyle = '#555555';
+      ctx2d.font = 'bold 20px sans-serif';
+      ctx2d.textAlign = 'right';
+      ctx2d.fillText(`@ ${charName}`, width - pad, 44);
+
+      ctx2d.fillStyle = '#2D3139';
+      ctx2d.textAlign = 'left';
+      ctx2d.font = '24px "Noto Sans SC", serif';
+      lines.forEach((l, i) => {
+        ctx2d.fillText(l, pad, 95 + i * lineH);
+      });
+
+      return canvas.toDataURL('image/png');
+    }
+
+    function renderDetailClips() {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      const box = document.getElementById('detail-clips-list');
+      c.clips = c.clips || [];
+      if (!c.clips.length) {
+        box.innerHTML = `<div class="p-6 text-center text-neutral-400 border border-dashed rounded-lg">还没有收藏该角色的喜爱句子截图或切片</div>`;
+        return;
+      }
+      box.innerHTML = c.clips.map((clip, i) => `
+        <div class="bg-[#F7F8FA] notion-border rounded-xl p-3 space-y-2">
+          <div class="flex justify-between items-center text-[10px] text-neutral-400 mono">
+            <span>FAVORITE CLIP // ${clip.time || ''}</span>
+            <button onclick="deleteCharClip(${i})" class="hover:text-red-500">删除</button>
+          </div>
+          ${clip.imageUrl ? `<img src="${clip.imageUrl}" class="w-full rounded-lg notion-border">` : ''}
+          ${clip.text ? `<p class="text-xs text-neutral-700 whitespace-pre-wrap font-serif bg-white p-2.5 rounded notion-border">${clip.text}</p>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function deleteCharClip(i) {
+      const c = db.users[currentUser].data.chars[currentDetailCharIndex];
+      c.clips.splice(i, 1);
+      await saveToStorage();
+      updateDetailCharStats();
+      renderDetailClips();
+    }
+
+    /* =========================================================================
+       5. 美化储存区 (THEMES VAULT — 支持展示图 + 作者分类筛选 + 代码/JSON保存)
+       ========================================================================= */
+    function openThemeModal() { document.getElementById('theme-modal').classList.remove('hidden'); }
+    function closeThemeModal() { document.getElementById('theme-modal').classList.add('hidden'); }
+
+    async function saveNewTheme() {
+      const name = document.getElementById('tm-name').value.trim();
+      if (!name) return alert("请输入美化名称");
+      const author = document.getElementById('tm-author').value.trim() || '未分类作者';
+      let code = document.getElementById('tm-code').value.trim();
+
+      const imgFiles = [...(document.getElementById('tm-images').files || [])];
+      const images = [];
+      for (const f of imgFiles) {
+        const url = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = e => res(e.target.result);
+          r.readAsDataURL(f);
+        });
+        images.push(url);
+      }
+
+      const jsonFile = document.getElementById('tm-json-file').files[0];
+      let fileData = null;
+      let fileName = '';
+      if (jsonFile) {
+        fileName = jsonFile.name;
+        fileData = await jsonFile.text();
+        if (!code) code = fileData.slice(0, 300) + '...';
+      }
+
+      db.users[currentUser].data.themes.unshift({
+        id: Date.now(),
+        name,
+        author,
+        images,
+        code,
+        fileName,
+        fileData,
+        createdAt: new Date().toLocaleDateString()
+      });
+
+      await saveToStorage();
+      closeThemeModal();
+      document.getElementById('tm-name').value = '';
+      document.getElementById('tm-author').value = '';
+      document.getElementById('tm-code').value = '';
+      document.getElementById('tm-images').value = '';
+      document.getElementById('tm-json-file').value = '';
+      renderThemeList();
+    }
+
+    function setThemeAuthorFilter(author) {
+      currentThemeAuthorFilter = author;
+      renderThemeList();
+    }
+
+    function renderThemeList() {
+      const themes = db.users[currentUser].data.themes || [];
+      const filterBar = document.getElementById('theme-author-filters');
+      const container = document.getElementById('theme-list-container');
+
+      // 提取所有作者分类
+      const authors = ['ALL', ...new Set(themes.map(t => t.author || '未分类作者'))];
+      filterBar.innerHTML = authors.map(a => `
+        <button onclick="setThemeAuthorFilter('${a}')" class="px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap ${currentThemeAuthorFilter === a ? 'bg-neutral-800 text-white' : 'notion-tag'}">
+          ${a === 'ALL' ? `全部作者 (${themes.length})` : `${a}`}
+        </button>
+      `).join('');
+
+      const filtered = themes.map((t, idx) => ({ t, idx })).filter(({ t }) =>
+        currentThemeAuthorFilter === 'ALL' || (t.author || '未分类作者') === currentThemeAuthorFilter
+      );
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="bg-white/60 notion-border border-dashed p-8 text-center rounded-xl text-xs text-neutral-400">美化储存区为空，点击右上角「+ 新建美化收录」导入美化展示图与作者分类</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(({ t, idx }) => `
+        <div class="bg-white notion-border rounded-xl p-3 space-y-2.5">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="text-xs font-bold text-neutral-800">${t.name}</div>
+              <span class="text-[10px] notion-tag px-2 py-0.5 rounded-full inline-block mt-1">作者：${t.author}</span>
+            </div>
+            <div class="flex gap-2">
+              ${t.fileData ? `<button onclick="downloadThemeFile(${idx})" class="text-[11px] bg-neutral-800 text-white px-2 py-1 rounded">下载文件</button>` : ''}
+              <button onclick="deleteThemeItem(${idx})" class="text-xs text-neutral-300 hover:text-red-500">✕</button>
+            </div>
+          </div>
+          ${(t.images && t.images.length) ? `
+            <div class="grid ${t.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 pt-1">
+              ${t.images.map(img => `<img src="${img}" class="w-full h-36 object-cover rounded-lg notion-border">`).join('')}
+            </div>
+          ` : ''}
+          ${t.code ? `
+            <details class="text-[11px] bg-[#F7F8FA] notion-border rounded-lg p-2">
+              <summary class="cursor-pointer text-neutral-500 font-medium">查看/复制 CSS 代码或备注</summary>
+              <pre class="mt-2 text-[10px] mono overflow-x-auto whitespace-pre-wrap text-neutral-700">${t.code.replace(/</g, '&lt;')}</pre>
+            </details>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function downloadThemeFile(idx) {
+      const t = db.users[currentUser].data.themes[idx];
+      if (!t || !t.fileData) return;
+      const blob = new Blob([t.fileData], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = t.fileName || `${t.name}.json`;
+      a.click();
+    }
+
+    async function deleteThemeItem(idx) {
+      if (!confirm("确定删除该条美化收录？")) return;
+      db.users[currentUser].data.themes.splice(idx, 1);
+      await saveToStorage();
+      renderThemeList();
+    }
+
+    /* =========================================================================
+       6. 预设储存区 (PRESETS VAULT — 支持一键导入与下载酒馆预设/脚本 JSON)
+       ========================================================================= */
+    function openPresetModal() { document.getElementById('preset-modal').classList.remove('hidden'); }
+    function closePresetModal() { document.getElementById('preset-modal').classList.add('hidden'); }
+
+    async function importPresetJsonFiles(event) {
+      const files = [...event.target.files];
+      event.target.value = '';
+      if (!files.length) return;
+      for (const f of files) {
+        const content = await f.text();
+        let category = '聊天预设';
+        if (content.includes('"regex"') || content.includes('findRegex')) category = '正则脚本';
+        else if (content.includes('"type": "script"')) category = '酒馆助手脚本';
+
+        db.users[currentUser].data.presets.unshift({
+          id: Date.now() + Math.random(),
+          name: f.name.replace(/\.json$/i, ''),
+          category,
+          author: '文件导入',
+          content,
+          fileName: f.name,
+          createdAt: new Date().toLocaleDateString()
+        });
+      }
+      await saveToStorage();
+      renderPresetList();
+    }
+
+    async function saveManualPreset() {
+      const name = document.getElementById('pm-name').value.trim();
+      if (!name) return alert("请输入预设名称");
+      const category = document.getElementById('pm-category').value;
+      const author = document.getElementById('pm-author').value.trim() || '自用';
+      const content = document.getElementById('pm-content').value.trim();
+
+      db.users[currentUser].data.presets.unshift({
+        id: Date.now(),
+        name, category, author, content,
+        fileName: `${name}.json`,
+        createdAt: new Date().toLocaleDateString()
+      });
+      await saveToStorage();
+      closePresetModal();
+      document.getElementById('pm-name').value = '';
+      document.getElementById('pm-content').value = '';
+      renderPresetList();
+    }
+
+    function renderPresetList() {
+      const presets = db.users[currentUser].data.presets || [];
+      const container = document.getElementById('preset-list-container');
+      if (!presets.length) {
+        container.innerHTML = `<div class="bg-white/60 notion-border border-dashed p-8 text-center rounded-xl text-xs text-neutral-400">预设储存区为空，可导入酒馆预设 JSON、正则或脚本文件</div>`;
+        return;
+      }
+      container.innerHTML = presets.map((p, idx) => `
+        <div class="bg-white notion-border rounded-xl p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="text-xs font-bold text-neutral-800">${p.name}</div>
+              <div class="flex gap-1.5 mt-1">
+                <span class="text-[10px] notion-tag px-2 py-0.5 rounded">${p.category}</span>
+                <span class="text-[10px] text-neutral-400 mono">@ ${p.author}</span>
+              </div>
+            </div>
+            <div class="flex gap-2 items-center">
+              <button onclick="downloadPresetItem(${idx})" class="px-2.5 py-1 bg-neutral-800 text-white rounded text-[11px]">导出文件</button>
+              <button onclick="deletePresetItem(${idx})" class="text-neutral-300 hover:text-red-500">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function downloadPresetItem(idx) {
+      const p = db.users[currentUser].data.presets[idx];
+      if (!p) return;
+      const blob = new Blob([p.content || ''], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = p.fileName || `${p.name}.json`;
+      a.click();
+    }
+
+    async function deletePresetItem(idx) {
+      if (!confirm("确定删除该预设？")) return;
+      db.users[currentUser].data.presets.splice(idx, 1);
+      await saveToStorage();
+      renderPresetList();
+    }
+
+    /* =========================================================================
+       7. 全库导出备份与恢复
+       ========================================================================= */
+    function exportFullVault() {
+      const dataStr = JSON.stringify(db.users[currentUser].data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `SillyTavern_Vault_${currentUser}_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    async function importFullVault(event) {
+      const file = event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        if (parsed.chars || parsed.themes || parsed.presets) {
+          db.users[currentUser].data = {
+            chars: parsed.chars || [],
+            themes: parsed.themes || [],
+            presets: parsed.presets || []
+          };
+          await saveToStorage();
+          renderAll();
+          alert("全库备份恢复成功！");
+        } else {
+          alert("备份文件格式不正确！");
+        }
+      } catch (e) {
+        alert("读取备份文件失败！");
+      }
+    }
+  </script>
+</body>
+</html>
